@@ -28,13 +28,13 @@ export default class Deck {
 
         Deck.saveDeck(deck);
         Deck.savePlayerScore(0);
+        Deck.saveComputerScore(0);
 
         this.cards = deck;
     }
 
     generateDeckWithCard() {
         const deck = this.cards;
-
         const setBoard = document.querySelector(".set-board");
 
         for (let i = 0; i < deck.length; i++) {
@@ -48,7 +48,6 @@ export default class Deck {
             }px] flex justify-center items-center" data-card="${
                 deck[i]
             }"><div class="flex gap-2 w-full h-full justify-center items-center border-2 border-slate-900 rounded-lg bg-white cursor-pointer hover:bg-neutral-300" >${card.generateCard()}</div></div>`;
-
             setBoard.innerHTML += wrapper;
         }
     }

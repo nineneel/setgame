@@ -4,20 +4,20 @@ import AI from "./AI.js";
 
 export default class Play {
     constructor() {
-        this.count = 1;
         this.SET = [];
         this.AI_SET = [];
         this.in_board = [];
-        this.isExpand = false;
-        this.isGameOver = false;
+        this.is_computer_think = false;
+        this.is_expand = false;
+        this.is_game_over = false;
 
         // generate player score
-        this.playerScore = document.querySelector("#player-score");
-        this.playerScore.innerHTML = 0;
+        this.player_score = document.querySelector("#player-score");
+        this.player_score.innerHTML = 0;
 
         // generate ai score
-        this.computerScore = document.querySelector("#computer-score");
-        this.computerScore.innerHTML = 0;
+        this.computer_score = document.querySelector("#computer-score");
+        this.computer_score.innerHTML = 0;
 
         this.ai = new AI();
 
@@ -30,8 +30,8 @@ export default class Play {
         // when deck on local storage is empty generate new deck else use is it
         if (Deck.loadDeck()) {
             this.main_deck.cards = Deck.loadDeck();
-            this.playerScore.innerHTML = Deck.loadPlayerScore();
-            this.computerScore.innerHTML = Deck.loadComputerScore();
+            this.player_score.innerHTML = Deck.loadPlayerScore();
+            this.computer_score.innerHTML = Deck.loadComputerScore();
         } else {
             this.main_deck.generateDeck();
         }
@@ -44,7 +44,7 @@ export default class Play {
 
         this.addMenu();
 
-        this.showCards(this.main_deck, this.isExpand);
+        this.showCards(this.main_deck, this.is_expand);
     }
 
     checkSet(isPlayer, THE_SET) {
@@ -53,7 +53,10 @@ export default class Play {
                 this.setFound(false, this.AI_SET); // computer
             } else {
                 this.AI_SET = [];
-                this.aiThinking();
+
+                if (!this.is_computer_think) {
+                    this.aiThinking();
+                }
             }
             this.computerClicked(THE_SET[0]);
             this.computerClicked(THE_SET[1]);
@@ -98,8 +101,8 @@ export default class Play {
 
     setFound(isPlayer, THE_SET) {
         isPlayer
-            ? Deck.savePlayerScore(++this.playerScore.innerHTML)
-            : Deck.saveComputerScore(++this.computerScore.innerHTML);
+            ? Deck.savePlayerScore(++this.player_score.innerHTML)
+            : Deck.saveComputerScore(++this.computer_score.innerHTML);
 
         for (let i = 0; i < 3; i++) {
             // move card to invisible
@@ -117,10 +120,13 @@ export default class Play {
         isPlayer ? this.removeCard(this.SET) : this.removeCard(this.AI_SET);
 
         // if expand is true then make it false
-        if (this.isExpand) {
+        if (this.is_expand) {
             this.reduceBoard();
-            this.isExpand = false;
+            this.is_expand = false;
         }
+
+        // notify ai if set has been found
+        this.ai.isSetFound();
 
         // reset set
         this.SET = [];
@@ -128,7 +134,7 @@ export default class Play {
 
         Deck.saveDeck(this.deck);
 
-        this.showCards(this.main_deck, this.isExpand);
+        this.showCards(this.main_deck, this.is_expand);
     }
 
     cardClicked(card) {
@@ -144,9 +150,9 @@ export default class Play {
 
     removeCard(THE_SET) {
         // swap last 3 card to 3 set card
-        let end = this.isExpand ? 15 : this.deck.length;
+        let end = this.is_expand ? 15 : this.deck.length;
 
-        if (this.isExpand) {
+        if (this.is_expand) {
             for (let i = 1; i <= 3; i++) {
                 // 1. remove from back
                 // 2. check if the current card is in the last 3 card just remove it, if not swap it to the last 3 card
@@ -173,32 +179,19 @@ export default class Play {
     }
 
     showCards() {
-        this.gameOver();
-
-        if (this.isGameOver) {
-            // console.log("game is over");
-            // const isPlayAgain = confirm("play again?");
-            // if (isPlayAgain) {
-            //     this.resetGame();
-            // } else {
-            //     this.isGameOver = false;
-            //     // this.showCards();
-            //     return;
-            // }
-        }
-
         const deck = this.main_deck.cards;
         // get the deck
         // add card from index 1 to 12
         // if card on the deck less than 12
         let pos = 0,
             boardRow = 4;
-        if (deck.length < 12) {
-            boardRow = deck.length / 3;
+
+        if (this.is_expand) {
+            boardRow = 5;
         }
 
-        if (this.isExpand) {
-            boardRow = 5;
+        if (deck.length < 12) {
+            boardRow = deck.length / 3;
         }
 
         let in_board = [];
@@ -218,6 +211,34 @@ export default class Play {
         }
 
         this.in_board = in_board;
+
+        this.gameOver();
+
+        if (this.is_game_over) {
+            console.log("game is over");
+            const resetBtn = document.querySelector("#reset-game");
+            resetBtn.innerHTML = "Play Again";
+            const playerScore = parseInt(this.player_score.innerHTML);
+            const computerScore = parseInt(this.computer_score.innerHTML);
+            const winner =
+                playerScore == computerScore
+                    ? "Draw"
+                    : playerScore < computerScore
+                    ? "Computer Win!"
+                    : "Player Win!";
+            const gameOverBoard = `<div
+            class="absolute w-full h-full flex justify-center items-center bg-sky-500/30 font-bold text-center "
+        >
+        <div class="w-full py-5 m-10 rounded-md bg-sky-500  text-white uppercase">
+        ${winner}
+            <br/>
+            game is over
+             </div>
+        </div>`;
+            Card.setBoard.innerHTML += gameOverBoard;
+            return;
+        }
+
         // if (!ai.isThinking) {
         let real_set = this.ai.findSet(this.in_board);
         // let ai_set = this.ai.thinking() ?? [];
@@ -226,43 +247,42 @@ export default class Play {
             this.expandBoard();
         }
 
-        this.aiThinking();
+        if (!this.is_computer_think) {
+            this.aiThinking();
+        }
     }
 
     async aiThinking() {
+        this.is_computer_think = true;
         // const hasil = await this.ai.thinking();
-        console.log("\n\n\n lagi berfikir");
         let AI_SET = [];
 
         AI_SET[0] = await this.ai.firstCard(this.in_board);
         this.computerClicked(AI_SET[0]);
-        console.log(AI_SET[0], this.count++);
 
         AI_SET[1] = await this.ai.secondCard(this.in_board, AI_SET[0]);
         this.computerClicked(AI_SET[1]);
-        console.log(AI_SET[0], this.count++);
 
-        AI_SET[2] = await this.ai
-            .thirdCard(AI_SET)
-            .finally(() => {
-                // this.ai.timeToThink().finally(() => {
+        AI_SET[2] = await this.ai.thirdCard(AI_SET).finally(() => {
+            this.ai.timeToThink().finally(() => {
                 this.AI_SET = AI_SET;
-                console.log(AI_SET[0], this.count++);
-                console.log(" udah selesai berfikir\n\n\n");
+
+                this.is_computer_think = false;
                 this.checkSet(false, this.AI_SET);
-                // });
-            })
-            .finally(() => {
-                this.AI_SET = [];
             });
+        });
     }
 
     computerClicked(attr) {
-        const card = document.querySelector(`[data-card="${attr}"]`).firstChild;
+        if (this.in_board.includes(attr)) {
+            const card = document.querySelector(
+                `[data-card="${attr}"]`
+            ).firstChild;
 
-        // change the ring color of the card
-        card.classList.toggle("ring-offset-2");
-        card.classList.toggle("ring-2");
+            // change the ring color of the card
+            card.classList.toggle("ring-offset-2");
+            card.classList.toggle("ring-2");
+        }
     }
 
     addClickListener() {
@@ -297,13 +317,13 @@ export default class Play {
 
     expandBoard() {
         // height of board add by card height
-        if (!this.isExpand) {
+        if (!this.is_expand) {
             Card.setBoard.classList.add(`h-[${450 + Card.cardHeight}px]`);
             Card.setBoard.style.transition = "height 0.5s ease 0s";
         }
 
         // call showcard function
-        this.isExpand = true;
+        this.is_expand = true;
         this.showCards(this.main_deck);
     }
 
@@ -330,18 +350,18 @@ export default class Play {
         });
     }
 
-    resetGame() {
-        this.isGameOver = false;
-        localStorage.removeItem("deck");
-        Deck.savePlayerScore(this.playerScore.innerHTML);
-        Deck.saveComputerScore(this.computerScore.innerHTML);
-        window.location.reload();
-    }
-
     gameOver() {
         let real_set = this.ai.findSet(this.in_board);
-        if (this.in_board.length <= 12 && real_set == null) {
-            this.isGameOver = true;
+        if (this.deck.length <= 12 && real_set == null) {
+            this.is_game_over = true;
         }
+    }
+
+    resetGame() {
+        this.is_game_over = false;
+        localStorage.removeItem("deck");
+        Deck.savePlayerScore(this.player_score.innerHTML);
+        Deck.saveComputerScore(this.computer_score.innerHTML);
+        window.location.reload();
     }
 }

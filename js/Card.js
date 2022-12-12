@@ -1,5 +1,3 @@
-import AI from "./AI.js";
-
 export default class Card {
     static setBoard = document.querySelector(".set-board");
     static boardPos = Card.setBoard.getBoundingClientRect();
